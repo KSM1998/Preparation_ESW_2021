@@ -41,9 +41,9 @@ float maxLineGap = 20;	//maximum gap in pixels between connectable line segments
 
 //Region - of - interest vertices, 관심 영역 범위 계산시 사용 
 //We want a trapezoid shape, with bottom edge at the bottom of the image
-float trap_bottom_width = 0.85;  // width of bottom edge of trapezoid, expressed as percentage of image width
-float trap_top_width = 0.07;     // ditto for top edge of trapezoid
-float trap_height = 0.4;         // height of the trapezoid expressed as percentage of image height
+float trap_bottom_width = 1;  // width of bottom edge of trapezoid, expressed as percentage of image width
+float trap_top_width = 1;     // ditto for top edge of trapezoid
+float trap_height = 1;         // height of the trapezoid expressed as percentage of image height
 
 
 //차선 색깔 범위 
@@ -72,16 +72,19 @@ Mat region_of_interest(Mat img_edges, Point* points)
 
 
 	//filling pixels inside the polygon defined by "vertices" with the fill color
-	fillPoly(img_mask, ppt, npt, 1, Scalar(255, 255, 255), LINE_8);						//1은 색으로 채워진 지역을 감싸는 가장자리의 개수  /  
+	//fillPoly(img_mask, ppt, npt, 1, Scalar(255, 255, 255), LINE_8);						//1은 색으로 채워진 지역을 감싸는 가장자리의 개수  /  
 																						// Scalar(255,255,255)는 색   /   LINE_8은 라인의 타입
 
+	rectangle(img_mask, Point(0, img_mask.rows/2), Point(200, img_mask.rows), Scalar(255, 255, 255), -1, 8);
+
+	rectangle(img_mask, Point(450, img_mask.rows / 2), Point(650, img_mask.rows), Scalar(255, 255, 255), -1, 8);
 
 	//returning the image only where mask pixels are nonzero
 	Mat img_masked;
 	bitwise_and(img_edges, img_mask, img_masked);										//채워진 도형의 색과 and 비트연산하면 결국 엣지만 남게되는!?
 
 	//영상 출력을 위한 추가
-	resize(img_mask, img_mask, Size(img_mask.cols*0.5 , img_mask.rows*0.5));
+	resize(img_mask, img_mask, Size(img_mask.cols*0.8 , img_mask.rows*0.8));
 	imshow("마스킹 영상", img_mask);
 
 	return img_masked;
@@ -396,15 +399,28 @@ int main(int, char**)
 		int height = img_filtered.rows;
 
 
-		Point points[4];
-		points[0] = Point((width * (1 - trap_bottom_width)) / 2, height);
-		points[1] = Point((width * (1 - trap_top_width)) / 2, height - height * trap_height);
-		points[2] = Point(width - (width * (1 - trap_top_width)) / 2, height - height * trap_height);
-		points[3] = Point(width - (width * (1 - trap_bottom_width)) / 2, height);
+		//Point points[4];
+		//points[0] = Point((width * (1 - trap_bottom_width)) / 2, height);
+		//points[1] = Point((width * (1 - trap_top_width)) / 2, height - height * trap_height);
+		//points[2] = Point(width - (width * (1 - trap_top_width)) / 2, height - height * trap_height);
+		//points[3] = Point(width - (width * (1 - trap_bottom_width)) / 2, height);
+
+		/*Point points_L[4];
+		points_L[0] = Point(0, height/2);
+		points_L[1] = Point(100, height/2);
+		points_L[2] = Point(0, height);
+		points_L[3] = Point(100, height);
+
+		Point points_R[4];
+		points_R[0] = Point((width * (1 - trap_bottom_width)) / 2, height);
+		points_R[1] = Point((width * (1 - trap_top_width)) / 2, height - height * trap_height);
+		points_R[2] = Point(width - (width * (1 - trap_top_width)) / 2, height - height * trap_height);
+		points_R[3] = Point(width - (width * (1 - trap_bottom_width)) / 2, height);*/
 
 
 		//4. 차선 검출할 영역을 제한함(진행방향 바닥에 존재하는 차선으로 한정)
-		img_edges = region_of_interest(img_edges, points);
+		//img_edges = region_of_interest(img_edges, points);
+		img_edges = region_of_interest(img_edges, points_L);
 
 
 		UMat uImage_edges;
