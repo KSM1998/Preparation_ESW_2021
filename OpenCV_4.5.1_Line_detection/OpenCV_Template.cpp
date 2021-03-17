@@ -83,8 +83,8 @@ Mat region_of_interest(Mat img_edges, Point* points)
 	bitwise_and(img_edges, img_mask, img_masked);										//채워진 도형의 색과 and 비트연산하면 결국 엣지만 남게되는!?
 
 	//영상 출력을 위한 추가
-	resize(img_mask, img_mask, Size(img_mask.cols * 0.5, img_mask.rows * 0.5));
-	imshow("마스킹 영상", img_mask);
+	//resize(img_mask, img_mask, Size(img_mask.cols * 0.5, img_mask.rows * 0.5));
+	//imshow("마스킹 영상", img_mask);
 
 	return img_masked;
 }
@@ -124,8 +124,8 @@ void filter_colors(Mat _img_bgr, Mat& img_filtered)								//노란색 차선 후보와 
 	addWeighted(white_image, 1.0, yellow_image, 1.0, 0.0, img_combine);
 
 	//영상 출력을 위한 추가
-	resize(img_combine, img_combine, Size(img_combine.cols * 0.5, img_combine.rows * 0.5));
-	imshow("filter_color 영상", img_combine);
+	//resize(img_combine, img_combine, Size(img_combine.cols * 0.5, img_combine.rows * 0.5));
+	//imshow("filter_color 영상", img_combine);
 
 	img_combine.copyTo(img_filtered);
 }
@@ -148,6 +148,12 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
  */
 
 
+	//draw_line 영상 송출 테스트
+	Mat drawing_line;
+	img_line.copyTo(drawing_line);
+
+
+
 	// 오류가 발생할 경우 선을 그리지 마십시오.
 	bool draw_right = true;
 	bool draw_left = true;
@@ -161,6 +167,8 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	float slope_threshold = 0.5;
 	vector<float> slopes;
 	vector<Vec4i> new_lines;
+
+	cout << "lines_size() = "<<lines.size() << "\n";
 
 	for (int i = 0; i < lines.size(); i++)
 	{
@@ -215,11 +223,14 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 
 
 	//선형 회귀 분석을 실행하여 오른쪽 및 왼쪽 차선 라인에 가장 적합한 선을 찾습니다.
+
 	//우측 차선
 	double right_lines_x[1000];
 	double right_lines_y[1000];
 	float right_m, right_b;
 
+
+	cout << "right_lines_size() = " << right_lines.size() << "\n";
 
 	int right_index = 0;
 	for (int i = 0; i < right_lines.size(); i++) {
@@ -262,6 +273,9 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	double left_lines_x[1000];
 	double left_lines_y[1000];
 	float left_m, left_b;
+
+
+	cout << "left_lines_size() = " << left_lines.size() << "\n";
 
 	int left_index = 0;
 	for (int i = 0; i < left_lines.size(); i++) {
@@ -320,12 +334,41 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	left_x2 = int(left_x2);
 
 
+	int center_x1;
+
+	int center_x2;
+
+	//int center_y;
+
+	center_x1 = (right_x1 + left_x1) / 2;
+	center_x2 = (right_x2 + left_x2) / 2;
+
+	//center_y1 = y1 + y2;
+
+	
+	cout << "center_x1 = " << center_x1 << " center_x2 = " << center_x2 << "\n";
+	cout << "y1 = " << y1 << " y2 = " << y2 <<"\n\n";
+
+
 	//이미지에 오른쪽 및 왼쪽 선 그리기
 	if (draw_right)
-		line(img_line, Point(right_x1, y1), Point(right_x2, y2), Scalar(255, 0, 0), 10);
+		line(img_line, Point(right_x1, y1), Point(right_x2, y2), Scalar(0, 255, 0), 12);
 	if (draw_left)
-		line(img_line, Point(left_x1, y1), Point(left_x2, y2), Scalar(255, 0, 0), 10);
+		line(img_line, Point(left_x1, y1), Point(left_x2, y2), Scalar(0, 255, 0), 12);
 
+	line(img_line, Point(center_x1, y1), Point(center_x2, y2), Scalar(255, 0, 0), 12);
+
+	//test
+	if (draw_right)
+		line(drawing_line, Point(right_x1, y1), Point(right_x2, y2), Scalar(0, 255, 0), 12);
+	if (draw_left)
+		line(drawing_line, Point(left_x1, y1), Point(left_x2, y2), Scalar(0, 255, 0), 12);
+
+	line(drawing_line, Point(center_x1, y1), Point(center_x2, y2), Scalar(0, 0, 255), 12);
+
+	//test 영상 출력을 위한 추가
+	resize(drawing_line, drawing_line, Size(drawing_line.cols * 0.5, drawing_line.rows * 0.5));
+	imshow("draw_line 영상", drawing_line);
 }
 
 
@@ -443,8 +486,8 @@ int main(int, char**)
 
 		//9. 결과를 화면에 보여줌 
 		Mat img_result;
-		resize(img_annotated, img_annotated, Size(width * 0.7, height * 0.7));
-		resize(img_edges, img_edges, Size(width * 0.7, height * 0.7));
+		resize(img_annotated, img_annotated, Size(width * 0.5, height * 0.5));
+		resize(img_edges, img_edges, Size(width * 0.5, height * 0.5));
 		cvtColor(img_edges, img_edges, COLOR_GRAY2BGR);
 		hconcat(img_edges, img_annotated, img_result);
 		imshow("차선 영상", img_result);
