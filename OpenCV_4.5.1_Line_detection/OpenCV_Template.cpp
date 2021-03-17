@@ -81,8 +81,8 @@ Mat region_of_interest(Mat img_edges, Point* points)
 	bitwise_and(img_edges, img_mask, img_masked);										//채워진 도형의 색과 and 비트연산하면 결국 엣지만 남게되는!?
 
 	//영상 출력을 위한 추가
-	resize(img_mask, img_mask, Size(img_mask.cols*0.5 , img_mask.rows*0.5));
-	imshow("마스킹 영상", img_mask);
+	//resize(img_mask, img_mask, Size(img_mask.cols*0.5 , img_mask.rows*0.5));
+	//imshow("마스킹 영상", img_mask);
 
 	return img_masked;
 }
@@ -122,8 +122,8 @@ void filter_colors(Mat _img_bgr, Mat& img_filtered)								//노란색 차선 후보와 
 	addWeighted(white_image, 1.0, yellow_image, 1.0, 0.0, img_combine);
 
 	//영상 출력을 위한 추가
-	resize(img_combine, img_combine, Size(img_combine.cols * 0.5, img_combine.rows * 0.5));
-	imshow("filter_color 영상", img_combine);
+	//resize(img_combine, img_combine, Size(img_combine.cols * 0.5, img_combine.rows * 0.5));
+	//imshow("filter_color 영상", img_combine);
 
 	img_combine.copyTo(img_filtered);
 }
