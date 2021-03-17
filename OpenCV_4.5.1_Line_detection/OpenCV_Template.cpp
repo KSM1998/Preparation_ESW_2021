@@ -32,18 +32,18 @@ using namespace std;
 
 
 //Hough Transform 파라미터
-float rho = 2; // distance resolution in pixels of the Hough grid
-float theta = 1 * CV_PI / 180; // angular resolution in radians of the Hough grid
-float hough_threshold = 15;	 // minimum number of votes(intersections in Hough grid cell)
-float minLineLength = 10; //minimum number of pixels making up a line
-float maxLineGap = 20;	//maximum gap in pixels between connectable line segments
+float rho = 2; // Hough 그리드의 거리 분해능(픽셀 단위)
+float theta = 1 * CV_PI / 180; // Hough 그리드의 라디안 단위의 각도 분해능
+float hough_threshold = 15;	 // 최소 투표 수(Hough 그리드 셀의 교차점)
+float minLineLength = 10; //라인을 구성하는 최소 픽셀 
+float maxLineGap = 20;	//연결 가능한 선 세그먼트 사이의 최대 픽셀 간격
 
 
 //Region - of - interest vertices, 관심 영역 범위 계산시 사용 
 //We want a trapezoid shape, with bottom edge at the bottom of the image
-float trap_bottom_width = 1;  // width of bottom edge of trapezoid, expressed as percentage of image width
-float trap_top_width = 1;     // ditto for top edge of trapezoid
-float trap_height = 1;         // height of the trapezoid expressed as percentage of image height
+float trap_bottom_width = 1;  // 사다리꼴 하단 가장자리의 너비, 이미지 폭의 백분율로 표시됨
+float trap_top_width = 0.6;     // 사다리꼴의 위쪽 가장자리에 대해 편집
+float trap_height = 0.5;         // 이미지 높이의 백분율로 표시되는 사다리꼴 높이
 
 
 //차선 색깔 범위 
@@ -58,7 +58,6 @@ Mat region_of_interest(Mat img_edges, Point* points)
 {
 	/*
 	Applies an image mask.
-
 	Only keeps the region of the image defined by the polygon
 	formed from `vertices`. The rest of the image is set to black.
 	*/
@@ -72,28 +71,28 @@ Mat region_of_interest(Mat img_edges, Point* points)
 
 
 	//filling pixels inside the polygon defined by "vertices" with the fill color
-	//fillPoly(img_mask, ppt, npt, 1, Scalar(255, 255, 255), LINE_8);						//1은 색으로 채워진 지역을 감싸는 가장자리의 개수  /  
+	fillPoly(img_mask, ppt, npt, 1, Scalar(255, 255, 255), LINE_8);						//1은 색으로 채워진 지역을 감싸는 가장자리의 개수  /  
 																						// Scalar(255,255,255)는 색   /   LINE_8은 라인의 타입
 
-	rectangle(img_mask, Point(0, img_mask.rows/2), Point(200, img_mask.rows), Scalar(255, 255, 255), -1, 8);
 
-	rectangle(img_mask, Point(450, img_mask.rows / 2), Point(650, img_mask.rows), Scalar(255, 255, 255), -1, 8);
+	//rectangle(img_mask, Point(0, img_mask.rows / 2), Point(img_mask.cols, img_mask.rows), Scalar(255, 255, 255), -1, 8);
+
 
 	//returning the image only where mask pixels are nonzero
 	Mat img_masked;
 	bitwise_and(img_edges, img_mask, img_masked);										//채워진 도형의 색과 and 비트연산하면 결국 엣지만 남게되는!?
 
 	//영상 출력을 위한 추가
-	resize(img_mask, img_mask, Size(img_mask.cols*0.8 , img_mask.rows*0.8));
+	resize(img_mask, img_mask, Size(img_mask.cols * 0.5, img_mask.rows * 0.5));
 	imshow("마스킹 영상", img_mask);
 
 	return img_masked;
 }
 
 
-																				//도로는 흰선과 노란선으로 이루어져 있고, 결국 그 선을 함께 인식해야하는데,
-																				//영상처리에서는 흰선과 노란선을 한번에 인식할 수 없으므로(?) 따로 처리를 하고 합친다!?
-																				//BGR 영상에서 흰색 차선 후보, HSV 영상에서 노란색 차선 후보를 검출합니다.
+//도로는 흰선과 노란선으로 이루어져 있고, 결국 그 선을 함께 인식해야하는데,
+//영상처리에서는 흰선과 노란선을 한번에 인식할 수 없으므로(?) 따로 처리를 하고 합친다!?
+//BGR 영상에서 흰색 차선 후보, HSV 영상에서 노란색 차선 후보를 검출합니다.
 void filter_colors(Mat _img_bgr, Mat& img_filtered)								//노란색 차선 후보와 흰색 차선 후보를 합쳐서 차선 후보 영상을 만듭니다.
 {
 	// Filter the image to include only yellow and white pixels
@@ -136,31 +135,29 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	if (lines.size() == 0) return;
 
 	/*
-	NOTE : this is the function you might want to use as a starting point once you want to
-	average / extrapolate the line segments you detect to map out the full
-	extent of the lane(going from the result shown in raw - lines - example.mp4
-	to that shown in P1_example.mp4).
+ 참고: 감지한 선 세그먼트를 평균/외삽하여 레인의 전체 범위를 매핑하려는 경우
+ (원시 선 - 예.mp4에서 P1_예.mp4에 표시된 결과로 이동)
+ 이 기능을 시작점으로 사용할 수 있습니다.
 
-	Think about things like separating line segments by their
-	slope((y2 - y1) / (x2 - x1)) to decide which segments are part of the left
-	line vs.the right line.Then, you can average the position of each of
-	the lines and extrapolate to the top and bottom of the lane.
+ 선 세그먼트를 기울기(y2 - y1) / (x2 - x1)로 구분하는 것과 같은 방법을 생각해보고,
+ 어떤 세그먼트가 왼쪽 선 대 오른쪽 선의 일부인지 결정하십시오.
+ 그런 다음 각 선의 위치를 평균화하고 차선 상단과 하단으로 추정할 수 있습니다.
 
-	This function draws `lines` with `color` and `thickness`.
-	Lines are drawn on the image inplace(mutates the image).
-	If you want to make the lines semi - transparent, think about combining
-	this function with the weighted_img() function below
-	*/
+ 이 함수는 색과 두께로 선을 그린다. 해당 이미지에 선이 그려집니다(이미지를 변형).
+ 선을 반투명하게 하려면 이 함수를 아래 weighted_img() 함수와 결합하는 것을 고려하십시오.
+ */
 
-	// In case of error, don't draw the line(s)
+
+	// 오류가 발생할 경우 선을 그리지 마십시오.
 	bool draw_right = true;
 	bool draw_left = true;
 	int width = img_line.cols;
 	int height = img_line.rows;
 
 
-	//Find slopes of all lines
-	//But only care about lines where abs(slope) > slope_threshold
+	//모든 선의 경사 찾기
+	//But abs(경사) > slope_threshold(경사)가 있는 선에만 주의하십시오.
+
 	float slope_threshold = 0.5;
 	vector<float> slopes;
 	vector<Vec4i> new_lines;
@@ -175,14 +172,14 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 
 
 		float slope;
-		//Calculate slope
-		if (x2 - x1 == 0) //corner case, avoiding division by 0
-			slope = 999.0; //practically infinite slope
+		//경사 계산
+		if (x2 - x1 == 0) //코너 케이스, 0으로 나누기 피함
+			slope = 999.0; //사실상 무한 경사
 		else
 			slope = (y2 - y1) / (float)(x2 - x1);
 
 
-		//Filter lines based on slope
+		//경사를 기준으로 선 필터링
 		if (abs(slope) > slope_threshold) {
 			slopes.push_back(slope);
 			new_lines.push_back(line);
@@ -191,8 +188,8 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 
 
 
-	// Split lines into right_lines and left_lines, representing the right and left lane lines
-	// Right / left lane lines must have positive / negative slope, and be on the right / left half of the image
+	 // 오른쪽과 왼쪽 차선 라인을 나타내는 오른쪽_라인과 왼쪽_라인으로 구분
+	 // 오른쪽/왼쪽 차선 라인은 양의/음의 기울기를 가져야 하며 이미지의 오른쪽/왼쪽 절반에 있어야 합니다.
 	vector<Vec4i> right_lines;
 	vector<Vec4i> left_lines;
 
@@ -208,7 +205,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 		int y2 = line[3];
 
 
-		float cx = width * 0.5; //x coordinate of center of image
+		float cx = width * 0.5; //x 이미지 중앙의 좌표
 
 		if (slope > 0 && x1 > cx && x2 > cx)
 			right_lines.push_back(line);
@@ -217,8 +214,8 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	}
 
 
-	//Run linear regression to find best fit line for right and left lane lines
-	//Right lane lines
+	//선형 회귀 분석을 실행하여 오른쪽 및 왼쪽 차선 라인에 가장 적합한 선을 찾습니다.
+	//우측 차선
 	double right_lines_x[1000];
 	double right_lines_y[1000];
 	float right_m, right_b;
@@ -261,7 +258,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 
 
 
-	// Left lane lines
+	// 왼쪽 차선
 	double left_lines_x[1000];
 	double left_lines_y[1000];
 	float left_m, left_b;
@@ -302,7 +299,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 
 
 
-	//Find 2 end points for right and left lines, used for drawing the line
+	//선을 그리는 데 사용되는 오른쪽 및 왼쪽 선의 끝점 2개 찾기
 	//y = m*x + b--> x = (y - b) / m
 	int y1 = height;
 	int y2 = height * (1 - trap_height);
@@ -314,7 +311,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	float left_x2 = (y2 - left_b) / left_m;
 
 
-	//Convert calculated end points from float to int
+	//계산된 끝점을 float에서 int로 변환
 	y1 = int(y1);
 	y2 = int(y2);
 	right_x1 = int(right_x1);
@@ -323,7 +320,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	left_x2 = int(left_x2);
 
 
-	//Draw the right and left lines on image
+	//이미지에 오른쪽 및 왼쪽 선 그리기
 	if (draw_right)
 		line(img_line, Point(right_x1, y1), Point(right_x2, y2), Scalar(255, 0, 0), 10);
 	if (draw_left)
@@ -338,7 +335,7 @@ int main(int, char**)
 	char buf[256];
 	Mat img_bgr, img_gray, img_edges, img_hough, img_annotated;
 
-	VideoCapture videoCapture("driving_in_japan.mp4");		//비디오캡처 클래스 생성자(파일 이름)로 객체 생성
+	VideoCapture videoCapture("curb_line_test.mp4");		//비디오캡처 클래스 생성자(파일 이름)로 객체 생성
 
 	if (!videoCapture.isOpened())							//클래스 객체가 비디오파일 또는 카메라를 위해 개방되었는지를 반환
 	{
@@ -358,7 +355,7 @@ int main(int, char**)
 
 	int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');  // select desired codec (must be available at runtime)	//비디오 코덱을 XVID MPEG-4 코덱으로 설정
 	double fps = 25.0;                          // framerate of the created video stream
-	string filename = "./live.avi";             // name of the output video file
+	string filename = "./curb_line_test_overwrapped.avi";             // name of the output video file
 	writer.open(filename, codec, fps, img_bgr.size(), CV_8UC3);
 
 	// check if we succeeded
@@ -400,27 +397,20 @@ int main(int, char**)
 
 
 		//Point points[4];
-		//points[0] = Point((width * (1 - trap_bottom_width)) / 2, height);
-		//points[1] = Point((width * (1 - trap_top_width)) / 2, height - height * trap_height);
-		//points[2] = Point(width - (width * (1 - trap_top_width)) / 2, height - height * trap_height);
-		//points[3] = Point(width - (width * (1 - trap_bottom_width)) / 2, height);
+		//points[0] = Point(0, height);
+		//points[1] = Point(0, height/2);
+		//points[2] = Point(width, height/2);
+		//points[3] = Point(width, height);
 
-		/*Point points_L[4];
-		points_L[0] = Point(0, height/2);
-		points_L[1] = Point(100, height/2);
-		points_L[2] = Point(0, height);
-		points_L[3] = Point(100, height);
-
-		Point points_R[4];
-		points_R[0] = Point((width * (1 - trap_bottom_width)) / 2, height);
-		points_R[1] = Point((width * (1 - trap_top_width)) / 2, height - height * trap_height);
-		points_R[2] = Point(width - (width * (1 - trap_top_width)) / 2, height - height * trap_height);
-		points_R[3] = Point(width - (width * (1 - trap_bottom_width)) / 2, height);*/
+		Point points[4];
+		points[0] = Point((width * (1 - trap_bottom_width)) / 2, height);
+		points[1] = Point((width * (1 - trap_top_width)) / 2, height - height * trap_height);
+		points[2] = Point(width - (width * (1 - trap_top_width)) / 2, height - height * trap_height);
+		points[3] = Point(width - (width * (1 - trap_bottom_width)) / 2, height);
 
 
 		//4. 차선 검출할 영역을 제한함(진행방향 바닥에 존재하는 차선으로 한정)
-		//img_edges = region_of_interest(img_edges, points);
-		img_edges = region_of_interest(img_edges, points_L);
+		img_edges = region_of_interest(img_edges, points);
 
 
 		UMat uImage_edges;
@@ -449,7 +439,7 @@ int main(int, char**)
 		writer << img_annotated;
 
 		count++;
-		if (count == 10) imwrite("img_annota1ted.jpg", img_annotated);
+		if (count == 10) imwrite("curb_line_test_img.jpg", img_annotated);
 
 		//9. 결과를 화면에 보여줌 
 		Mat img_result;
