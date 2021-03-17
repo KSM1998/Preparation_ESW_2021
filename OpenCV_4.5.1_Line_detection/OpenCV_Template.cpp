@@ -168,7 +168,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	vector<float> slopes;
 	vector<Vec4i> new_lines;
 
-	cout << "lines_size() = "<<lines.size() << "\n";
+	//cout << "lines_size() = "<<lines.size() << "\n";
 
 	for (int i = 0; i < lines.size(); i++)
 	{
@@ -230,7 +230,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	float right_m, right_b;
 
 
-	cout << "right_lines_size() = " << right_lines.size() << "\n";
+	//cout << "right_lines_size() = " << right_lines.size() << "\n";
 
 	int right_index = 0;
 	for (int i = 0; i < right_lines.size(); i++) {
@@ -275,7 +275,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	float left_m, left_b;
 
 
-	cout << "left_lines_size() = " << left_lines.size() << "\n";
+	//cout << "left_lines_size() = " << left_lines.size() << "\n";
 
 	int left_index = 0;
 	for (int i = 0; i < left_lines.size(); i++) {
@@ -338,25 +338,46 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 
 	int center_x2;
 
-	//int center_y;
-
 	center_x1 = (right_x1 + left_x1) / 2;
 	center_x2 = (right_x2 + left_x2) / 2;
 
-	//center_y1 = y1 + y2;
-
+	
+	
+	int moving_point_x = (center_x1 + center_x2) / 2;
+	int moving_point_y = (y1 + y2) / 2;
 	
 	cout << "center_x1 = " << center_x1 << " center_x2 = " << center_x2 << "\n";
 	cout << "y1 = " << y1 << " y2 = " << y2 <<"\n\n";
 
-
+	cout << "moving_point (x,y) : " << moving_point_x << "  " << moving_point_y << "\n\n";			// moving_point x좌표는 값이 계속 변함
+																									// y좌표는 그대로이지만 실제 주행때는 괜찮은게 맞는지!?
+																									// 영상은 계속 변하고(= 움직이고) ROI 영역은 일정
+																									// ROI자체의 y좌표는 0 ~ 특정 값까지 일정!
+																									// moivng_y 좌표의 값이 일정하게 ex) 810이면 그 값을 향해
+																									// 계속 주행!?
 	//이미지에 오른쪽 및 왼쪽 선 그리기
 	if (draw_right)
 		line(img_line, Point(right_x1, y1), Point(right_x2, y2), Scalar(0, 255, 0), 12);
 	if (draw_left)
 		line(img_line, Point(left_x1, y1), Point(left_x2, y2), Scalar(0, 255, 0), 12);
 
-	line(img_line, Point(center_x1, y1), Point(center_x2, y2), Scalar(255, 0, 0), 12);
+
+	if (draw_right == true && draw_left == true)
+	{
+		line(img_line, Point(center_x1, y1), Point(center_x2, y2), Scalar(255, 0, 0), 12);
+	}
+
+	else if (draw_right == true && draw_left == false)
+	{
+		cout << "\n좌회전!!\n";
+	}
+	else if (draw_right == false && draw_left == true)
+	{
+		cout << "\n우회전!!\n";
+	}
+	else
+		cout << "차선 인식 불가!\n";
+	
 
 	//test
 	if (draw_right)
