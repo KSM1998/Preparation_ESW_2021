@@ -354,7 +354,7 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 		line(img_line, Point(right_x1, y1), Point(right_x2, y2), Scalar(0, 255, 0), 12);
 	if (draw_left)
 		line(img_line, Point(left_x1, y1), Point(left_x2, y2), Scalar(0, 255, 0), 12);
-
+	
 
 	if (draw_right == true && draw_left == true)
 	{
