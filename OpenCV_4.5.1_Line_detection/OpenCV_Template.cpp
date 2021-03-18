@@ -65,14 +65,14 @@ Mat region_of_interest(Mat img_edges, Point* points)
 	Mat img_mask = Mat::zeros(img_edges.rows, img_edges.cols, CV_8UC1);					//a행 b열의 CV_... 타입 영행렬(역행렬!?)을 반환합니다.
 
 
-	Scalar ignore_mask_color = Scalar(255, 255, 255);									//검은색?
-	const Point* ppt[1] = { points };													//문법 이해 X... ppt는 꼭지점 역할? points가 4개의 점이므로 4개의 꼭지점!?
-	int npt[] = { 4 };																	//꼭지점의 개수를 담는 변수
+	Scalar ignore_mask_color = Scalar(255, 255, 255);									
+	const Point* ppt[1] = { points };													
+	int npt[] = { 4 };																	
 
 
 	//filling pixels inside the polygon defined by "vertices" with the fill color
-	fillPoly(img_mask, ppt, npt, 1, Scalar(255, 255, 255), LINE_8);						//1은 색으로 채워진 지역을 감싸는 가장자리의 개수  /  
-																						// Scalar(255,255,255)는 색   /   LINE_8은 라인의 타입
+	fillPoly(img_mask, ppt, npt, 1, Scalar(255, 255, 255), LINE_8);						  
+																						
 
 
 	//rectangle(img_mask, Point(0, img_mask.rows / 2), Point(img_mask.cols, img_mask.rows), Scalar(255, 255, 255), -1, 8);
@@ -80,7 +80,7 @@ Mat region_of_interest(Mat img_edges, Point* points)
 
 	//returning the image only where mask pixels are nonzero
 	Mat img_masked;
-	bitwise_and(img_edges, img_mask, img_masked);										//채워진 도형의 색과 and 비트연산하면 결국 엣지만 남게되는!?
+	bitwise_and(img_edges, img_mask, img_masked);										
 
 	//영상 출력을 위한 추가
 	//resize(img_mask, img_mask, Size(img_mask.cols * 0.5, img_mask.rows * 0.5));
@@ -90,23 +90,20 @@ Mat region_of_interest(Mat img_edges, Point* points)
 }
 
 
-//도로는 흰선과 노란선으로 이루어져 있고, 결국 그 선을 함께 인식해야하는데,
-//영상처리에서는 흰선과 노란선을 한번에 인식할 수 없으므로(?) 따로 처리를 하고 합친다!?
-//BGR 영상에서 흰색 차선 후보, HSV 영상에서 노란색 차선 후보를 검출합니다.
-void filter_colors(Mat _img_bgr, Mat& img_filtered)								//노란색 차선 후보와 흰색 차선 후보를 합쳐서 차선 후보 영상을 만듭니다.
+void filter_colors(Mat _img_bgr, Mat& img_filtered)								
 {
 	// Filter the image to include only yellow and white pixels
-	UMat img_bgr;													//원본영상(이미지들)을 카피하는 변수
+	UMat img_bgr;													
 	_img_bgr.copyTo(img_bgr);
 
-	UMat img_hsv;													//노란 차선 인식을 위한 이미지 변수(cvtColor를 통해 변환)
-	UMat img_combine;												//흰 차선과 노란차선을 합치기 위한 변수
+	UMat img_hsv;													
+	UMat img_combine;												
 
-	UMat white_mask;												//lower_white 와 upper_white 사이의 값 (= 흰색)에 해당한다면 흰색값을, 그렇지 않다면 검은색 값을 담는 변수
-	UMat white_image;												//img_bgr로 받아오는 영상(이미지들)이 white_mask 영역 값으로 and 연산한 결과를 담는 변수
+	UMat white_mask;												
+	UMat white_image;												
 
-	UMat yellow_mask;												//white_mask와 동일한 기능
-	UMat yellow_image;												//white_image와 동일한 기능
+	UMat yellow_mask;												
+	UMat yellow_image;												
 
 
 	//Filter white pixels
@@ -349,12 +346,9 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	cout << "center_x1 = " << center_x1 << " center_x2 = " << center_x2 << "\n";
 	cout << "y1 = " << y1 << " y2 = " << y2 <<"\n\n";
 
-	cout << "moving_point (x,y) : " << moving_point_x << "  " << moving_point_y << "\n\n";			// moving_point x좌표는 값이 계속 변함
-																									// y좌표는 그대로이지만 실제 주행때는 괜찮은게 맞는지!?
-																									// 영상은 계속 변하고(= 움직이고) ROI 영역은 일정
-																									// ROI자체의 y좌표는 0 ~ 특정 값까지 일정!
-																									// moivng_y 좌표의 값이 일정하게 ex) 810이면 그 값을 향해
-																									// 계속 주행!?
+	cout << "moving_point (x,y) : " << moving_point_x << "  " << moving_point_y << "\n\n";			
+																									
+																																																																							
 	//이미지에 오른쪽 및 왼쪽 선 그리기
 	if (draw_right)
 		line(img_line, Point(right_x1, y1), Point(right_x2, y2), Scalar(0, 255, 0), 12);
@@ -399,11 +393,11 @@ int main(int, char**)
 	char buf[256];
 	Mat img_bgr, img_gray, img_edges, img_hough, img_annotated;
 
-	VideoCapture videoCapture("curb_line_test.mp4");		//비디오캡처 클래스 생성자(파일 이름)로 객체 생성
+	VideoCapture videoCapture("http://192.168.0.34:8090/?action=stram");		//실시간 스트리밍 영상으로 가져오기
 
-	if (!videoCapture.isOpened())							//클래스 객체가 비디오파일 또는 카메라를 위해 개방되었는지를 반환
+	if (!videoCapture.isOpened())							
 	{
-		cout << "동영상 파일을 열수 없습니다. \n" << endl;
+		cout << "파이 카메라 동영상을 열수 없습니다. \n" << endl;
 
 		char a;
 		cin >> a;
@@ -411,15 +405,15 @@ int main(int, char**)
 		return 1;
 	}
 
-	videoCapture.read(img_bgr);								//한 번의 호출로 프레임을 잡아서 읽어옴
+	videoCapture.read(img_bgr);								
 
 	if (img_bgr.empty()) return -1;
 
-	VideoWriter writer;										//비디오라이터 클래스 객체 생성
+	VideoWriter writer;												
 
-	int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');  // select desired codec (must be available at runtime)	//비디오 코덱을 XVID MPEG-4 코덱으로 설정
-	double fps = 25.0;                          // framerate of the created video stream
-	string filename = "./curb_line_test_overwrapped.avi";             // name of the output video file
+	int codec = VideoWriter::fourcc('X', 'V', 'I', 'D');			
+	double fps = 25.0;												
+	string filename = "./pi_camera_test_overwrapped.avi";           
 	writer.open(filename, codec, fps, img_bgr.size(), CV_8UC3);
 
 	// check if we succeeded
@@ -442,7 +436,7 @@ int main(int, char**)
 	while (1)
 	{
 		//1. 원본 영상을 읽어옴 
-		videoCapture.read(img_bgr);
+		videoCapture.read(img_bgr);			//videoCaputure >> img_bgr	 일 수도	
 		if (img_bgr.empty()) break;
 
 
@@ -459,12 +453,6 @@ int main(int, char**)
 		int width = img_filtered.cols;					// row col 주의
 		int height = img_filtered.rows;
 
-
-		//Point points[4];
-		//points[0] = Point(0, height);
-		//points[1] = Point(0, height/2);
-		//points[2] = Point(width, height/2);
-		//points[3] = Point(width, height);
 
 		Point points[4];
 		points[0] = Point((width * (1 - trap_bottom_width)) / 2, height);
@@ -522,5 +510,3 @@ int main(int, char**)
 
 	return 0;
 }
-
-// laptop -> desktop test
