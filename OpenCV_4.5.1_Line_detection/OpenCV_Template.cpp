@@ -24,6 +24,14 @@
 #include <opencv2/imgproc.hpp>
 #include <gsl/gsl_fit.h>
 #include <iostream>  
+									//TCP 부분	
+#include <stdio.h>
+#include<winsock.h>					//소켓을 사용하기 위한 헤더파일
+
+#pragma comment(lib, "ws2_32")		//위에서 선언한 헤더파일들을 가져다 쓰기위한 링크
+
+#define PORT 4578					//예약된 포트를 제외하고 사용, 4자리 포트중 임의의 숫자를 할당
+#define PACKET_SIZE 1024			//패킷사이즈를 정의
 
 
 using namespace cv;
@@ -346,10 +354,11 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 	int moving_point_x = (center_x1 + center_x2) / 2;
 	int moving_point_y = (y1 + y2) / 2;
 	
-	cout << "center_x1 = " << center_x1 << " center_x2 = " << center_x2 << "\n";
+/*	cout << "center_x1 = " << center_x1 << " center_x2 = " << center_x2 << "\n";
 	cout << "y1 = " << y1 << " y2 = " << y2 <<"\n\n";
 
-	cout << "moving_point (x,y) : " << moving_point_x << "  " << moving_point_y << "\n\n";			// moving_point x좌표는 값이 계속 변함
+	cout << "moving_point (x,y) : " << moving_point_x << "  " << moving_point_y << "\n\n";*/			
+																									// moving_point x좌표는 값이 계속 변함
 																									// y좌표는 그대로이지만 실제 주행때는 괜찮은게 맞는지!?
 																									// 영상은 계속 변하고(= 움직이고) ROI 영역은 일정
 																									// ROI자체의 y좌표는 0 ~ 특정 값까지 일정!
@@ -396,6 +405,65 @@ void draw_line(Mat& img_line, vector<Vec4i> lines)
 
 int main(int, char**)
 {
+
+	//■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 통신 먼저 연결 ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
+	printf("\nmain함수 실행 \n");
+
+	WSADATA wsaData;				//Windows의 소켓 초기화 정보를 저장하기위한 구조체. 이미 선언되어있는 구조체이다.
+	WSAStartup(MAKEWORD(2, 2), &wsaData);	//이 함수를 호출해서 윈도우즈에 어느 소켓을 활용할 것인지 알려준다. 
+											//첫번째 인자는 소켓 버전, 두번째 인자는 WSADATA 구조체의 포인터타입
+											//그런데 2.2 버전은 실수이므로, 2.2라는 실수를 정수값으로 변환하여 넣어줄 수 있어야 한다.MAKEWORD 매크로를 이용해서 만들어준다.
+
+
+	SOCKET hListen;							//SOCKET 은 핸들이다
+											//핸들이란 운영체제가 관리하는 커널오브젝트의 한 종류이다.
+											//커널오브젝트는 운영체제가 관리하는 커널이라는 특수한 영역에 존재하는 오브젝트이다.
+											//윈도우를 생성해도 해당 윈도우의 핸들이 생성되고 운영체제가 그 핸들을 이용해서어떤 프로그램인지를 구분한다던지 하는 기능을 제공한다.
+
+	hListen = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);	//PF_INET 을 넣어주면 IPV4 타입을 사용한다는 것 / SOCK_STREAM 을 넣어주면 연결지향형(tcp) 소켓을 만들겠다는 의미 / IPPROTO_TCP 는 TCP를 사용하겠다고 지정해주는것
+
+
+											//소켓의 구성요소를 담을 구조체 생성 및 값 할당
+											//네트워크 표준은 빅엔디안을 활용
+	SOCKADDR_IN tListenAddr = {};
+	tListenAddr.sin_family = AF_INET;					// sin_family 는 반드시 AF_INET 이어야 함
+	tListenAddr.sin_port = htons(PORT);					//PORT 번호를 설정한다. 기본으로 정해진 포트를 제외한 포트번호를 설정해야 한다. 
+	tListenAddr.sin_addr.s_addr = htonl(INADDR_ANY);	//INADDR_ANY를 넣어주면 현재 동작되는 컴퓨터의 IP 주소로 설정
+
+
+	bind(hListen, (SOCKADDR*)&tListenAddr, sizeof(tListenAddr));	//bind 함수는 소켓에 주소정보를 연결
+																	//첫번째 인자로는 위에 선언한 소켓을 넣어준다.
+																	//두번째 인자로는 bind 될 소켓에 할당할 주소정보를 담고있는 구조체의 주소가 들어간다.
+																	//세번째 인자로는 두번째 인자로 넣은 구조체의 크기가 들어간다.
+
+
+	listen(hListen, SOMAXCONN);										//listen 함수는 연결을 수신하는상태로 소켓의 상태를 변경한다. 즉, 소켓을 접속 대기 상태로 만들어준다. 
+																	//SOMAXCONN은 한꺼번에 요청 가능한 최대 접속승인 수를 의미
+
+
+	SOCKADDR_IN tCIntAddr = {};										//클라이언트 측 소켓 생성 및 정보를 담을 구조체 생성 및 값 할당, 클라이언트가 접속 요청하면 승인해주는 역할
+	int iCIntSize = sizeof(tCIntAddr);
+
+	//accept 함수를 이용하여 접속 요청을 수락해준다. 이 함수는 동기화된 방식으로 동작
+	//동기화된 방식이란 요청을 마무리 하기 전까지 계속 대기상태에 놓이게 되는 것
+	//즉 요청이 들어오기 전까지 이 함수는 안빠져나온다.
+	//접속 요청을 승인하면 연결된 소켓이 만들어져서 리턴된다.이렇게 만들어진 소켓을 이용해서 통신해야 한다.
+
+	SOCKET hClient = accept(hListen, (SOCKADDR*)&tCIntAddr, &iCIntSize);	//첫번째 인자로는 소켓을 넣어준다.
+
+
+	char cBuffer[PACKET_SIZE] = {};
+	recv(hClient, cBuffer, PACKET_SIZE, 0);
+	printf("Recv Msg : %s\n", cBuffer);
+
+	char cMsg[] = "Server Send";
+	send(hClient, cMsg, strlen(cMsg), 0);
+
+	printf("서버 send 함수 실행 \n");
+
+	//■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 통신 연결 끝 ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+
 	char buf[256];
 	Mat img_bgr, img_gray, img_edges, img_hough, img_annotated;
 
@@ -436,7 +504,7 @@ int main(int, char**)
 	int count = 0;
 
 
-	//--------------- 영상 처리 시작 ---------------------------------
+	//■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■ 영상 처리 시작  ■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
 
 
 	while (1)
@@ -459,12 +527,6 @@ int main(int, char**)
 		int width = img_filtered.cols;					// row col 주의
 		int height = img_filtered.rows;
 
-
-		//Point points[4];
-		//points[0] = Point(0, height);
-		//points[1] = Point(0, height/2);
-		//points[2] = Point(width, height/2);
-		//points[3] = Point(width, height);
 
 		Point points[4];
 		points[0] = Point((width * (1 - trap_bottom_width)) / 2, height);
@@ -520,7 +582,10 @@ int main(int, char**)
 	}
 
 
+	closesocket(hClient);					//해당 소켓을 닫아준다. 
+	closesocket(hListen);
+
+	WSACleanup();
+
 	return 0;
 }
-
-// laptop -> desktop test
